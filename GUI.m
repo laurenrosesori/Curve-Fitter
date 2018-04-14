@@ -197,16 +197,39 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
         if handles.haveSelectedLog == 0
              msgbox('Select a log file location first before attempting to plot.');
         else %selected log file successfully
+            domain = 0: 0.1: max(handles.firstColumn);
+            
+             if handles.fitSelection == 1     %---Linear (y=mx+b)
+                p = polyfit(handles.firstColumn, handles,secondColumn, 1);
+                    m = p(1);
+                    b = p(2);
+             elseif handles.fitSelection == 2 %---Linear (y=mx)
+                p = polyfit(handles.firstColumn, handles.secondColumn, 1);
+                    m = p(1);
+             elseif handles.fitSelection == 3 %---General Polynomial of degree n
+                
+             elseif handles.fitSelection == 4 %---Exponential (y=be^mx)
+                p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
+                    m = p(1);
+                    b = exp(p(2));
+             elseif handles.fitSelection == 5 %---Power Law
+                p = polyfit(log(handles.firstColumn), log(handles.secondColumn),1);
+                    m = p(1);
+                    b = exp(p(2));    
+             elseif handles.fitSelection == 6 %---Sin()
+                
+             elseif handles.fitSelection == 7 %---Cos()
+                 
+             elseif handles.fitSelection == 8 %---Logarithmic (y=m(lnx)+b)
+                p = polyfit(log(handles.firstColumn), handles.secondColumn,1);
+                    m = p(1);
+                    b = p(2);
              
-%             1: Linear (y=mx+b)
-%             2: Linear (y=mx)
-%             3: General Polynomial of degree n
-%             4: Exponential
-%             5: Power Law
-%             6: Sin()
-%             7: Cos()
-%             8: Logarithmic
-%             9: Reciprocal
+             elseif handles.fitSelection == 10 %---Reciprocal
+                p = polyfit(handles.firstColumn, (1./handles.secondColumn),1); 
+                    m = p(1);
+                    b = p(2);
+             end
         end
     end
 
