@@ -71,6 +71,7 @@ function varargout = GUI_OutputFcn(hObject, eventdata, handles)
     varargout{1} = handles.output;
     % --- Executes during object creation, after setting all properties.
 
+
    
 % --- Executes on button press in loadDataFile.
 function loadDataFile_Callback(hObject, eventdata, handles)
@@ -122,10 +123,6 @@ function setLogFile_Callback(hObject, eventdata, handles)
 % --- Executes on selection change in fitStyleMenu.
 function fitStyleMenu_Callback(hObject, eventdata, handles)
     contents = (get(handles.fitStyleMenu, 'String'));
-    contents = contents{get(hObject,'Value')};
-    % Hints: contents = cellstr(get(hObject,'String')) returns fitStyleMenu contents as cell array
-    %        contents{get(hObject,'Value')} returns selected item from fitStyleMenu
-    
     
     if strcmp(contents, 'Linear (y=mx+b)')
         handles.fitSelection = 1;
@@ -145,6 +142,7 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
     elseif strcmp(contents, 'Sin()')
         handles.fitSelection = 6;
         guidata(hObject, handles);
+        
     elseif strcmp(contents, 'Cos()')
         handles.fitSelection = 7;
         guidata(hObject, handles);
@@ -155,6 +153,20 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
         handles.fitSelection = 9;
         guidata(hObject, handles);
     end
+    
+   
+% (1) Linear (y=mx+b)
+% (2) Linear (y=mx)
+% (3) General Polynomial of degree n
+% (4) Exponential
+% (5) Power Law
+% (6) Sin()
+% (7) Cos()
+% (8) Logarithmic
+% (9) Reciprocal
+
+% Hints: contents = cellstr(get(hObject,'String')) returns fitStyleMenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from fitStyleMenu
 
 % --- Plot the txt file loaded
 function plotDataFile_Callback(hObject, eventdata, handles)
@@ -196,17 +208,8 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
     else
         if handles.haveSelectedLog == 0
              msgbox('Select a log file location first before attempting to plot.');
-        else %selected log file successfully
-             
-%             1: Linear (y=mx+b)
-%             2: Linear (y=mx)
-%             3: General Polynomial of degree n
-%             4: Exponential
-%             5: Power Law
-%             6: Sin()
-%             7: Cos()
-%             8: Logarithmic
-%             9: Reciprocal
+        else
+
         end
     end
 
@@ -250,6 +253,7 @@ function yScale_Callback(hObject, eventdata, handles)
         set(handles.yLabel, 'String', 'Y');
     end
     
+
 % --- Executes on button press in xScale.
 function xScale_Callback(hObject, eventdata, handles)
     if strcmp( get(handles.axes1, 'XScale') , 'linear')   
