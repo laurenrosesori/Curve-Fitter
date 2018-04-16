@@ -125,8 +125,6 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
     contents = contents{get(hObject,'Value')};
     % Hints: contents = cellstr(get(hObject,'String')) returns fitStyleMenu contents as cell array
     %        contents{get(hObject,'Value')} returns selected item from fitStyleMenu
-    
-    
     if strcmp(contents, 'Linear (y=mx+b)')
         handles.fitSelection = 1;
         guidata(hObject, handles);
@@ -134,7 +132,6 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
         handles.fitSelection = 2;
         guidata(hObject, handles);
     elseif strcmp(contents, 'General Polynomial of degree n')
-        
         handles.fitSelection = 3;
         guidata(hObject, handles);
     elseif strcmp(contents, 'Exponential (y=be^(mx))')
@@ -208,7 +205,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 guidata(hObject, handles);
             
              if handles.fitSelection == 1     %---Linear (y=mx+b)
-                p = polyfit(handles.firstColumn, handles,secondColumn, 1);
+                p = polyfit(handles.firstColumn, handles.secondColumn, 1);
                     m = p(1);
                     b = p(2);
                 handles.range = m.*handles.domain + b;
@@ -234,6 +231,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                                'String','Enter',...
                                'Callback', @btnCallback);
 
+                
              elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))
                 p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
                     m = p(1);
@@ -329,3 +327,10 @@ function xScale_Callback(hObject, eventdata, handles)
         set(handles.axes1, 'XScale', 'linear');
         set(handles.xLabel, 'String', 'X');
     end
+    
+function [] = editCallback(H, event) %used in 
+    a = get(H,'string');
+     disp(['The string in the editbox is: ',a]);
+    
+function [] = btnCallback(src, event)
+    close(get(src, 'Parent'));
