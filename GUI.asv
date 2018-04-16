@@ -134,25 +134,32 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
         handles.fitSelection = 2;
         guidata(hObject, handles);
     elseif strcmp(contents, 'General Polynomial of degree n')
+        
         handles.fitSelection = 3;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Exponential')
+    elseif strcmp(contents, 'Exponential (y=be^(mx))')
         handles.fitSelection = 4;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Power Law')
+    elseif strcmp(contents, 'Exponential (y=b10^(mx))')
         handles.fitSelection = 5;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Sin()')
+    elseif strcmp(contents, 'Power Law')
         handles.fitSelection = 6;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Cos()')
+    elseif strcmp(contents, 'Sin()')
         handles.fitSelection = 7;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Logarithmic')
+    elseif strcmp(contents, 'Cos()')
         handles.fitSelection = 8;
         guidata(hObject, handles);
-    elseif strcmp(contents, 'Reciprocal')
+    elseif strcmp(contents, 'Logarithmic (y=m(lnx)+b)')
         handles.fitSelection = 9;
+        guidata(hObject, handles);
+    elseif strcmp(contents, 'Logarithmic (y=m(logx)+b)')
+        handles.fitSelection = 10;
+        guidata(hObject, handles);
+    elseif strcmp(contents, 'Reciprocal')
+        handles.fitSelection = 11;
         guidata(hObject, handles);
     end
 
@@ -197,37 +204,78 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
         if handles.haveSelectedLog == 0
              msgbox('Select a log file location first before attempting to plot.');
         else %selected log file successfully
-            domain = 0: 0.1: max(handles.firstColumn);
+            handles.domain = 0: 0.1: max(handles.firstColumn);
+                guidata(hObject, handles);
             
              if handles.fitSelection == 1     %---Linear (y=mx+b)
                 p = polyfit(handles.firstColumn, handles,secondColumn, 1);
                     m = p(1);
                     b = p(2);
+                handles.range = m.*handles.domain + b;
+                    guidata(hObject, handles);
              elseif handles.fitSelection == 2 %---Linear (y=mx)
                 p = polyfit(handles.firstColumn, handles.secondColumn, 1);
                     m = p(1);
+                handles.range = m.*handles.domain;
+                    guidata(hObject, handles);
              elseif handles.fitSelection == 3 %---General Polynomial of degree n
-                
-             elseif handles.fitSelection == 4 %---Exponential (y=be^mx)
+                box = dialog('Name', 'Exponential Fit', ...
+                 'Position',[300 300 250 150]);
+                txt = uicontrol('Parent', box, ...
+                          'Style', 'text', ...
+                          'Position', [20 100 210 40], ...
+                          'String', 'Enter degree ''n'' of the polynomial you want to fit to.');
+                degree = uicontrol('Parent', box, ...
+                                   'Style', 'edit', ...
+                                   'Position', [20 60 210 40],...
+                                   'Callback', @editCallback );
+                btn = uicontrol('Parent',box,...
+                               'Position',[20 20 210 40],...
+                               'String','Enter',...
+                               'Callback', @btnCallback);
+
+             elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))
                 p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
                     m = p(1);
                     b = exp(p(2));
-             elseif handles.fitSelection == 5 %---Power Law
+                handles.range = b.*(exp(m.*handles.domain));
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 5 %---Exponential (y=b10^(mx))
+                p = polyfit(handles.firstColumn, log10(handles.secondColumn),1);
+                    m = p(1);
+                    b = 10.^(p(2));
+                handles.range = b.*(10.^(m.*handles.domain));
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 6 %---Power Law
                 p = polyfit(log(handles.firstColumn), log(handles.secondColumn),1);
                     m = p(1);
                     b = exp(p(2));    
-             elseif handles.fitSelection == 6 %---Sin()
-                
-             elseif handles.fitSelection == 7 %---Cos()
-                 
-             elseif handles.fitSelection == 8 %---Logarithmic (y=lnx+b)
+                handles.range = b.*(handles.domain.^(m));
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 7 %---Sin()
+                handles.range = sin(handles.domain);
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 8 %---Cos()
+                handles.range = cos(handles.domain);
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 9 %---Logarithmic (y=m(lnx)+b)
                 p = polyfit(log(handles.firstColumn), handles.secondColumn,1);
                     m = p(1);
                     b = p(2);
-             elseif handles.fitSelection == 9 %---Reciprocal
+                handles.range = (m.*(log(handles.domain)))+b;
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 10 %---Logarithmic (y=m(logx)+b)
+                p = polyfit(log10(handles.firstColumn), handles.secondColumn,1);
+                    m = p(1);
+                    b = p(2);
+                handles.range = (m.*(log10(handles.domain)))+b;
+                    guidata(hObject, handles);
+             elseif handles.fitSelection == 11 %---Reciprocal
                 p = polyfit(handles.firstColumn, (1./handles.secondColumn),1); 
                     m = p(1);
                     b = p(2);
+                handles.range = 1./( (m).*(handles.domain)+b );
+                    guidata(hObject, handles);
              end
         end
     end
