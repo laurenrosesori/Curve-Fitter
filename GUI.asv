@@ -252,7 +252,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 uiwait;                
                    p = polyfit( handles.firstColumn, handles.secondColumn, degree.UserData);
                    handles.range = polyval(p,handles.domain);
-                        guidata(hObject, handles);
+                    
                     %plot
                     set(get(handles.axes1, 'children'), 'visible', 'off');
                     handles.havePlotted = 1;
@@ -296,10 +296,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
                 second = plot(handles.axes1, handles.domain, handles.range, 'r');
              elseif handles.fitSelection == 7 %---Sin()--------------------------------------
-                p = polyfit(sin(handles.firstColumn), handles.secondColumn, 1);
-                    m = p(1);
-                    b = p(2);
-                handles.range = (m).*(sin(handles.domain)) + b;
+                handles.range = sin(handles.domain);
                     guidata(hObject, handles);    
                 %plot
                 set(get(handles.axes1, 'children'), 'visible', 'off');
@@ -308,11 +305,8 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
                 second = plot(handles.axes1, handles.domain, handles.range, 'r');    
              elseif handles.fitSelection == 8 %---Cos()--------------------------------------
-                p = polyfit(cos(handles.firstColumn), handles.secondColumn, 1);
-                    m = p(1);
-                    b = p(2);
-                handles.range = (m).*(cos(handles.domain)) + b;
-                    guidata(hObject, handles);
+                handles.range = cos(handles.domain);
+                    guidata(hObject, handles);    
                 %plot
                 set(get(handles.axes1, 'children'), 'visible', 'off');
                 handles.havePlotted = 1;
