@@ -57,11 +57,12 @@ handles.timesEdited = 0;
 handles.timesLoaded = 0;
 handles.haveSelectedLog = 0;
 handles.fitSelection = 1;
+handles.havePlotted = 0;
 
 % Update handles structure
 guidata(hObject, handles);
     %look at data by writing "guidata(GUI)" in command window
-
+    
 % UIWAIT makes GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -90,7 +91,11 @@ function loadDataFile_Callback(hObject, eventdata, handles)
                 guidata(hObject, handles); %handles put back as new guidata for GUI
             handles.secondColumn = secondColumn;
                 guidata(hObject, handles);
-
+                
+            %PLOT the data file
+            plot(handles.axes1, handles.firstColumn, handles.secondColumn, 'o');
+            
+            %Highlight the next required step for user; select log location
             handles.timesLoaded = 1;
                 guidata(hObject, handles);
             set(handles.loadDataFile, 'BackgroundColor', [.94 .94 .94]);
@@ -162,28 +167,28 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
 
 % --- Plot the txt file loaded
 function plotDataFile_Callback(hObject, eventdata, handles)
-    if handles.timesLoaded == 0 %haven't loaded a data txt file yet
-        msgbox('Please load a data txt file before attempting to plot.');
-        set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
-            guidata(hObject, handles);
-    else
-        if handles.haveSelectedLog == 0 
-           msgbox('Select a log file location first before attempting to plot.');
-           set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
-                guidata(hObject, handles);
-        else %lines to actually plot
-            buttonState = get(handles.plotDataFile, 'Value'); %toggle state
-            plot(handles.axes1, handles.firstColumn, handles.secondColumn, 'o');
-                 set(get(handles.axes1,'children'),'visible','off') %hide the current axes contents
-
-            if buttonState == get(handles.plotDataFile, 'Max') %pressed
-                set(get(handles.axes1,'children'),'visible','on') 
-            elseif buttonState == get(handles.plotDataFile, 'Min') %not pressed
-                %hide the current axes contents
-                set(get(handles.axes1,'children'),'visible','off')
-            end
-        end
-    end
+%     if handles.timesLoaded == 0 %haven't loaded a data txt file yet
+%         msgbox('Please load a data txt file before attempting to plot.');
+%         set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
+%             guidata(hObject, handles);
+%     else
+%         if handles.haveSelectedLog == 0  %haven't selected log file yet
+%            msgbox('Select a log file location first before attempting to plot.');
+%            set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
+%                 guidata(hObject, handles);
+%         else %lines to actually plot
+%             buttonState = get(handles.plotDataFile, 'Value'); %toggle state at present time
+%             plot(handles.axes1, handles.firstColumn, handles.secondColumn, 'o');
+%                  set(get(handles.axes1,'children'),'visible','off') %hide the current axes contents
+% 
+%             if buttonState == get(handles.plotDataFile, 'Max') %pressed
+%                 set(get(handles.axes1,'children'),'visible','on') 
+%             elseif buttonState == get(handles.plotDataFile, 'Min') %not pressed
+%                 %hide the current axes contents
+%                 set(get(handles.axes1,'children'),'visible','off')
+%             end
+%         end
+%     end
   
 % --- Executes during object creation, after setting all properties.
 function fitStyleMenu_CreateFcn(hObject, eventdata, handles)
@@ -197,83 +202,153 @@ end
 function plotAndRecord_Callback(hObject, eventdata, handles)
     if handles.timesLoaded == 0
        msgbox('Please load a data txt file before attempting to plot.'); 
-    else
+    else %entered username AND loaded data
         if handles.haveSelectedLog == 0
              msgbox('Select a log file location first before attempting to plot.');
         else %selected log file successfully
             handles.domain = 0: 0.1: max(handles.firstColumn);
                 guidata(hObject, handles);
             
-             if handles.fitSelection == 1     %---Linear (y=mx+b)
+             if handles.fitSelection == 1     %---Linear (y=mx+b)-------------------------------
                 p = polyfit(handles.firstColumn, handles.secondColumn, 1);
                     m = p(1);
                     b = p(2);
                 handles.range = m.*handles.domain + b;
+                    guidata(hObject, handles);    
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 2 %---Linear (y=mx)
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+             elseif handles.fitSelection == 2 %---Linear (y=mx)---------------------------------
                 p = polyfit(handles.firstColumn, handles.secondColumn, 1);
                     m = p(1);
                 handles.range = m.*handles.domain;
+                    guidata(hObject, handles);     
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 3 %---General Polynomial of degree n
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');
+             elseif handles.fitSelection == 3 %---General Polynomial of degree n------------------
                 box = dialog('Name', 'Exponential Fit', ...
                  'Position',[300 300 250 150]);
-                txt = uicontrol('Parent', box, ...
-                          'Style', 'text', ...
-                          'Position', [20 100 210 40], ...
-                          'String', 'Enter degree ''n'' of the polynomial you want to fit to.');
-                degree = uicontrol('Parent', box, ...
-                                   'Style', 'edit', ...
-                                   'Position', [20 60 210 40],...
-                                   'Callback', @editCallback );
-                btn = uicontrol('Parent',box,...
-                               'Position',[20 20 210 40],...
-                               'String','Enter',...
-                               'Callback', @btnCallback);
+                    label = uicontrol('Parent', box, ...
+                              'Style', 'text', ...
+                              'Position', [20 100 210 40], ...
+                              'String', 'Enter degree ''n'' of the polynomial you want to fit to.');
+                    degree = uicontrol('Parent', box, ...
+                                       'Style', 'edit', ...
+                                       'Tag', 'editBox', ...
+                                       'Position', [20 60 210 40],...
+                                       'Callback', @editCallback );
 
-                
-             elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))
+                    btn = uicontrol('Parent',box,...
+                                   'Position',[20 20 210 40],...
+                                   'String','Enter',...
+                                   'Callback', @btnCallback);
+                uiwait;                
+                   p = polyfit( handles.firstColumn, handles.secondColumn, degree.UserData);
+                   handles.range = polyval(p,handles.domain);
+                    
+                    %plot
+                    set(get(handles.axes1, 'children'), 'visible', 'off');
+                    handles.havePlotted = 1;
+                        guidata(hObject, handles);
+                    first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                    second = plot(handles.axes1, handles.domain, handles.range, 'r');            
+             elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))------------------------
                 p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
                     m = p(1);
                     b = exp(p(2));
                 handles.range = b.*(exp(m.*handles.domain));
+                    guidata(hObject, handles);   
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 5 %---Exponential (y=b10^(mx))
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');      
+             elseif handles.fitSelection == 5 %---Exponential (y=b10^(mx))----------------------
                 p = polyfit(handles.firstColumn, log10(handles.secondColumn),1);
                     m = p(1);
                     b = 10.^(p(2));
                 handles.range = b.*(10.^(m.*handles.domain));
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 6 %---Power Law
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
+                    guidata(hObject, handles);
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');           
+             elseif handles.fitSelection == 6 %---Power Law-------------------------------------
                 p = polyfit(log(handles.firstColumn), log(handles.secondColumn),1);
                     m = p(1);
                     b = exp(p(2));    
                 handles.range = b.*(handles.domain.^(m));
+                    guidata(hObject, handles);   
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 7 %---Sin()
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');
+             elseif handles.fitSelection == 7 %---Sin()--------------------------------------
                 handles.range = sin(handles.domain);
+                    guidata(hObject, handles);    
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 8 %---Cos()
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+             elseif handles.fitSelection == 8 %---Cos()--------------------------------------
                 handles.range = cos(handles.domain);
+                    guidata(hObject, handles);    
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 9 %---Logarithmic (y=m(lnx)+b)
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+             elseif handles.fitSelection == 9 %---Logarithmic (y=m(lnx)+b)--------------------
                 p = polyfit(log(handles.firstColumn), handles.secondColumn,1);
                     m = p(1);
                     b = p(2);
                 handles.range = (m.*(log(handles.domain)))+b;
+                    guidata(hObject, handles);   
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 10 %---Logarithmic (y=m(logx)+b)
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+             elseif handles.fitSelection == 10 %---Logarithmic (y=m(logx)+b)------------------
                 p = polyfit(log10(handles.firstColumn), handles.secondColumn,1);
                     m = p(1);
                     b = p(2);
                 handles.range = (m.*(log10(handles.domain)))+b;
+                    guidata(hObject, handles); 
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
-             elseif handles.fitSelection == 11 %---Reciprocal
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+             elseif handles.fitSelection == 11 %---Reciprocal---------------------------------
                 p = polyfit(handles.firstColumn, (1./handles.secondColumn),1); 
                     m = p(1);
                     b = p(2);
                 handles.range = 1./( (m).*(handles.domain)+b );
+                    guidata(hObject, handles);   
+                %plot
+                set(get(handles.axes1, 'children'), 'visible', 'off');
+                handles.havePlotted = 1;
                     guidata(hObject, handles);
+                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
              end
         end
     end
@@ -328,9 +403,11 @@ function xScale_Callback(hObject, eventdata, handles)
         set(handles.xLabel, 'String', 'X');
     end
     
-function [] = editCallback(H, event) %used in 
+function [] = editCallback(H, event) %used in "plotAndRecord" function
     a = get(H,'string');
-     disp(['The string in the editbox is: ',a]);
+    a = str2num(a);
+    H.UserData = a;
     
-function [] = btnCallback(src, event)
-    close(get(src, 'Parent'));
+function [] = btnCallback(src, event) %used in "plotAndRecord" function
+    uiresume;
+    set( get(src, 'Parent'),'visible', 'off');
