@@ -62,7 +62,8 @@ handles.havePlotted = 0;
 % Update handles structure
 guidata(hObject, handles);
     %look at data by writing "guidata(GUI)" in command window
-    
+msgbox(['Please note that your data.txt file and log.txt file must be located in the SAME folder as these GUI files'...
+    '. If they are not in the same location, exit the program, move them, and start it again.']);
 % UIWAIT makes GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -89,6 +90,16 @@ function loadDataFile_Callback(hObject, eventdata, handles)
             firstColumn = (data(:,[1]))';
             secondColumn = (data(:,[2]))';
 
+            %check for all positive y's/all negative y's for exponential
+            %functions later
+            if all(secondColumn(:)>=0) || all(secondColumn(:)<=0)
+                handles.canExponentiallyFit = 1;
+                    guidata(hObject, handles);
+            else
+                handles.canExponentiallyFit = 0;
+                    guidata(hObject, handles);
+            end
+            
             % At THIS point, "handles" is just a copy of guidata for the GUI
             handles.firstColumn = firstColumn;
                 guidata(hObject, handles); %handles put back as new guidata for GUI
@@ -297,30 +308,34 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                         fprintf(fileID, '\r\n     MSE- %f\r\n', MSE);
                         fclose(fileID);
              elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))------------------------
-                p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
-                    m = p(1);
-                    b = exp(p(2));
-                handles.range = b.*(exp(m.*handles.domain));
-                    guidata(hObject, handles);   
-                %plot
-                set(get(handles.axes1, 'children'), 'visible', 'off');
-                handles.havePlotted = 1;
-                    guidata(hObject, handles);
-                first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');
-                
-                %Type of curve, resulting coefficients, resulting equation,
-                %MSE value
-                yfit = b.*(exp(m.*handles.firstColumn));
-                        e = handles.secondColumn - yfit;
-                        MSE = mean(e.^2);
-                
-                fileID = fopen(handles.selectedLogFile, 'a');
-                    fprintf(fileID, ['Exponential (y=be^(mx)):\r\n     ', ...
-                        'Coefficients- m=%f, b=%f\r\n     ', ...
-                        'Resulting Equation- y=(%f)(e^(%fx))\r\n     ', ...
-                        'MSE- %f\r\n'], p(1), p(2),p(2),p(1),MSE);
-                    fclose(fileID);
+                if handles.canExponentiallyFit == 0
+                    msgbox('You cannot choose this type of line fit because all of the y values in the data are either not all positive or not all negative.');
+                else
+                     p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
+                        m = p(1);
+                        b = exp(p(2));
+                    handles.range = b.*(exp(m.*handles.domain));
+                        guidata(hObject, handles);   
+                    %plot
+                    set(get(handles.axes1, 'children'), 'visible', 'off');
+                    handles.havePlotted = 1;
+                        guidata(hObject, handles);
+                    first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
+                    second = plot(handles.axes1, handles.domain, handles.range, 'r');
+
+                    %Type of curve, resulting coefficients, resulting equation,
+                    %MSE value
+                    yfit = b.*(exp(m.*handles.firstColumn));
+                            e = handles.secondColumn - yfit;
+                            MSE = mean(e.^2);
+
+                    fileID = fopen(handles.selectedLogFile, 'a');
+                        fprintf(fileID, ['Exponential (y=be^(mx)):\r\n     ', ...
+                            'Coefficients- m=%f, b=%f\r\n     ', ...
+                            'Resulting Equation- y=(%f)(e^(%fx))\r\n     ', ...
+                            'MSE- %f\r\n'], p(1), p(2),p(2),p(1),MSE);
+                        fclose(fileID);
+                end
              elseif handles.fitSelection == 5 %---Exponential (y=b10^(mx))----------------------
                 p = polyfit(handles.firstColumn, log10(handles.secondColumn),1);
                     m = p(1);

@@ -62,7 +62,8 @@ handles.havePlotted = 0;
 % Update handles structure
 guidata(hObject, handles);
     %look at data by writing "guidata(GUI)" in command window
-    
+msgbox(['Please note that your data.txt file and log.txt file must be located in the SAME folder as these GUI files'...
+    '. If they are not in the same location, exit the program, move them, and start it again.']);
 % UIWAIT makes GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -89,6 +90,15 @@ function loadDataFile_Callback(hObject, eventdata, handles)
             firstColumn = (data(:,[1]))';
             secondColumn = (data(:,[2]))';
 
+            %check for all positive y's/all negative y's for exponential
+            %functions later
+            if all(secondColumn(:)>=0) || all(secondColumn(:)<=0)
+                handles.canExponentiallyFit = 1;
+                    guidata(
+            else
+                
+            end
+            
             % At THIS point, "handles" is just a copy of guidata for the GUI
             handles.firstColumn = firstColumn;
                 guidata(hObject, handles); %handles put back as new guidata for GUI
@@ -294,7 +304,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                             for j=0:round(degree.UserData)-1
                                 fprintf(fileID, '(%f)(x^%d)+', p(j+1),round(degree.UserData)-j);
                             end
-                        fprintf(fileID, '\r\n     MSE- %f', MSE);
+                        fprintf(fileID, '\r\n     MSE- %f\r\n', MSE);
                         fclose(fileID);
              elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))------------------------
                 p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
@@ -443,7 +453,7 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 fileID = fopen(handles.selectedLogFile, 'a');
                     fprintf(fileID, ['Logarithmic (y=m(lnx)+b):\r\n     ', ...
                         'Coefficients- m=%f, b=%f\r\n     ', ...
-                        'Resulting Equation- y=(%f)(cos(x))+(%f)\r\n     ', ...
+                        'Resulting Equation- y=(%f)(ln(x))+(%f)\r\n     ', ...
                         'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
                     fclose(fileID);
              elseif handles.fitSelection == 10 %---Logarithmic (y=m(logx)+b)------------------
@@ -461,8 +471,15 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 
                 %Type of curve, resulting coefficients, resulting equation,
                 %MSE value, R and R^2
+                yfit = (m.*(log10(handles.firstColumn)))+b;
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
                 fileID = fopen(handles.selectedLogFile, 'a');
-                    fprintf(fileID, 'Logarithmic (y=m(logx)+b):\r\n');
+                    fprintf(fileID, ['Logarithmic (y=m(logx)+b):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(log(x))+(%f)\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
                     fclose(fileID);
              elseif handles.fitSelection == 11 %---Reciprocal---------------------------------
                 p = polyfit(handles.firstColumn, (1./handles.secondColumn),1); 
@@ -479,8 +496,15 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 
                 %Type of curve, resulting coefficients, resulting equation,
                 %MSE value, R and R^2
+                yfit = 1./( (m).*(handles.firstColumn)+b );
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
                 fileID = fopen(handles.selectedLogFile, 'a');
-                    fprintf(fileID, 'Reciprocal:\r\n');
+                    fprintf(fileID, ['Reciprocal:\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=1/((%f)(x)+(%f))\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
                     fclose(fileID);
              end
         end
