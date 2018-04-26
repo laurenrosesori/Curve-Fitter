@@ -22,7 +22,7 @@ function varargout = GUI(varargin)
 
 % Edit the above text to modify the response to help GUI
 
-% Last Modified by GUIDE v2.5 13-Apr-2018 15:50:11
+% Last Modified by GUIDE v2.5 18-Apr-2018 01:40:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,7 +62,8 @@ handles.havePlotted = 0;
 % Update handles structure
 guidata(hObject, handles);
     %look at data by writing "guidata(GUI)" in command window
-    
+msgbox(['Please note that your data.txt file and log.txt file must be located in the SAME folder as these GUI files'...
+    '. If they are not in the same location, exit the program, move them, and start it again.']);
 % UIWAIT makes GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -82,10 +83,22 @@ function loadDataFile_Callback(hObject, eventdata, handles)
             msgbox('You already loaded a data txt file. Restart to start over.');
         else
             selected_txt_file = uigetfile('*.txt','Select the .txt code file');
+                %used in setLogFile button callback
+                handles.dataFile = selected_txt_file;
+                    guidata(hObject, handles);
             data = dlmread(selected_txt_file);
             firstColumn = (data(:,[1]))';
             secondColumn = (data(:,[2]))';
 
+            %check for all positive y's/all negative y's for exponential
+            %functions later
+            if all(secondColumn(:)>=0) || all(secondColumn(:)<=0)
+                handles.canExponentiallyFit = 1;
+                    guidata(
+            else
+                
+            end
+            
             % At THIS point, "handles" is just a copy of guidata for the GUI
             handles.firstColumn = firstColumn;
                 guidata(hObject, handles); %handles put back as new guidata for GUI
@@ -112,10 +125,12 @@ function setLogFile_Callback(hObject, eventdata, handles)
             msgbox('You have already selected a log file. Restart the program to start over.');
         else
             selected_log_file = uigetfile('*.txt', 'Select a file to store the log');
+            handles.selectedLogFile = selected_log_file;
+                guidata(hObject, handles);
 
             % --- write to log
             fileID = fopen(selected_log_file, 'a');
-                fprintf(fileID, 'Username: %s\r\nDate: %s\r\n\r\n', handles.username, date);
+                fprintf(fileID, 'Username: %s\r\nDate: %s\r\nData File Name: %s\r\n\r\n', handles.username, date, handles.dataFile);
                 fclose(fileID);
 
             handles.haveSelectedLog = 1;
@@ -165,30 +180,6 @@ function fitStyleMenu_Callback(hObject, eventdata, handles)
         guidata(hObject, handles);
     end
 
-% --- Plot the txt file loaded
-function plotDataFile_Callback(hObject, eventdata, handles)
-%     if handles.timesLoaded == 0 %haven't loaded a data txt file yet
-%         msgbox('Please load a data txt file before attempting to plot.');
-%         set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
-%             guidata(hObject, handles);
-%     else
-%         if handles.haveSelectedLog == 0  %haven't selected log file yet
-%            msgbox('Select a log file location first before attempting to plot.');
-%            set(handles.plotDataFile, 'Value', get(handles.plotDataFile, 'Min')); %toggle button remains off
-%                 guidata(hObject, handles);
-%         else %lines to actually plot
-%             buttonState = get(handles.plotDataFile, 'Value'); %toggle state at present time
-%             plot(handles.axes1, handles.firstColumn, handles.secondColumn, 'o');
-%                  set(get(handles.axes1,'children'),'visible','off') %hide the current axes contents
-% 
-%             if buttonState == get(handles.plotDataFile, 'Max') %pressed
-%                 set(get(handles.axes1,'children'),'visible','on') 
-%             elseif buttonState == get(handles.plotDataFile, 'Min') %not pressed
-%                 %hide the current axes contents
-%                 set(get(handles.axes1,'children'),'visible','off')
-%             end
-%         end
-%     end
   
 % --- Executes during object creation, after setting all properties.
 function fitStyleMenu_CreateFcn(hObject, eventdata, handles)
@@ -220,7 +211,25 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                second = plot(handles.axes1, handles.domain, handles.range, 'r'); 
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                x = handles.firstColumn;
+                    y = handles.secondColumn;
+                    n = length(x);
+                    r = (n*sum(x.*y) - sum(x)*sum(y))/(sqrt(n*sum(x.^2)-sum(x)^2)*sqrt(n*sum(y.^2)-sum(y)^2));
+                    r2 = r^2;
+                yfit = m.*handles.firstColumn + b;
+                    e = handles.secondColumn - yfit;
+                    MSE = mean(e.^2);
+                    
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Linear (y=mx+b):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(x)+(%f)\r\n     ', ...
+                        'MSE- %f\r\n     R- %f\r\n     R^2- %f\r\n'], p(1), p(2),p(1),p(2),MSE, r, r2);
+                    fclose(fileID);
              elseif handles.fitSelection == 2 %---Linear (y=mx)---------------------------------
                 p = polyfit(handles.firstColumn, handles.secondColumn, 1);
                     m = p(1);
@@ -231,7 +240,27 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');
+                slope = ((handles.firstColumn).')\((handles.secondColumn).');
+                range = slope*[0 handles.firstColumn];
+                second = plot([0 handles.firstColumn], range, 'r');
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                x = handles.firstColumn;
+                    y = handles.secondColumn;
+                    n = length(x);
+                    r = (n*sum(x.*y) - sum(x)*sum(y))/(sqrt(n*sum(x.^2)-sum(x)^2)*sqrt(n*sum(y.^2)-sum(y)^2));
+                    r2 = r^2;
+                yfit = slope*handles.firstColumn;
+                    e = handles.secondColumn - yfit;
+                    MSE = mean(e.^2);
+                    
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Linear (y=mx):\r\n     ', ...
+                        'Coefficients- m=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(x)\r\n     ', ...
+                        'MSE- %f\r\n     R- %f\r\n     R^2- %f\r\n'], slope,slope,MSE, r, r2);
+                    fclose(fileID);
              elseif handles.fitSelection == 3 %---General Polynomial of degree n------------------
                 box = dialog('Name', 'Exponential Fit', ...
                  'Position',[300 300 250 150]);
@@ -250,15 +279,33 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                                    'String','Enter',...
                                    'Callback', @btnCallback);
                 uiwait;                
-                   p = polyfit( handles.firstColumn, handles.secondColumn, degree.UserData);
+                   p = polyfit( handles.firstColumn, handles.secondColumn, round(degree.UserData));
                    handles.range = polyval(p,handles.domain);
-                    
+                        guidata(hObject, handles);
                     %plot
                     set(get(handles.axes1, 'children'), 'visible', 'off');
                     handles.havePlotted = 1;
                         guidata(hObject, handles);
                     first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                    second = plot(handles.axes1, handles.domain, handles.range, 'r');            
+                    second = plot(handles.axes1, handles.domain, handles.range, 'r');
+                    
+                    %Type of curve, resulting coefficients, resulting equation,
+                    %MSE value
+                    yfit = polyval(p,handles.firstColumn);
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+
+                    fileID = fopen(handles.selectedLogFile, 'a');
+                        fprintf(fileID, 'General Polynomial of degree n:\r\n     Coefficients- ');
+                            for i=1:round(degree.UserData)
+                                fprintf(fileID, '%f  ',p(i)); %cycle through all coeffients
+                            end
+                        fprintf(fileID, '\r\n     Resulting Equation- ');
+                            for j=0:round(degree.UserData)-1
+                                fprintf(fileID, '(%f)(x^%d)+', p(j+1),round(degree.UserData)-j);
+                            end
+                        fprintf(fileID, '\r\n     MSE- %f\r\n', MSE);
+                        fclose(fileID);
              elseif handles.fitSelection == 4 %---Exponential (y=be^(mx))------------------------
                 p = polyfit(handles.firstColumn, log(handles.secondColumn),1);
                     m = p(1);
@@ -270,7 +317,20 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');      
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value
+                yfit = b.*(exp(m.*handles.firstColumn));
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Exponential (y=be^(mx)):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(e^(%fx))\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(2),p(1),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 5 %---Exponential (y=b10^(mx))----------------------
                 p = polyfit(handles.firstColumn, log10(handles.secondColumn),1);
                     m = p(1);
@@ -282,7 +342,20 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');           
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');  
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value
+                yfit = b.*(10.^(m.*handles.firstColumn));
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Exponential (y=b10^(mx)):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(10^(%fx))\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(2),p(1),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 6 %---Power Law-------------------------------------
                 p = polyfit(log(handles.firstColumn), log(handles.secondColumn),1);
                     m = p(1);
@@ -295,24 +368,69 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
                 second = plot(handles.axes1, handles.domain, handles.range, 'r');
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value
+                yfit = b.*(handles.firstColumn.^(m));
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Power Law:\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(x^(%f))\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(2),p(1),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 7 %---Sin()--------------------------------------
-                handles.range = sin(handles.domain);
+                p = polyfit(sin(handles.firstColumn), handles.secondColumn, 1);
+                    m = p(1);
+                    b = p(2);
+                handles.range = (m).*(sin(handles.domain)) + b;
                     guidata(hObject, handles);    
                 %plot
                 set(get(handles.axes1, 'children'), 'visible', 'off');
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                second = plot(handles.axes1, handles.domain, handles.range, 'r'); 
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value
+                yfit = (m).*(sin(handles.firstColumn)) + b;
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Sin():\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(sin(x))+(%f)\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 8 %---Cos()--------------------------------------
-                handles.range = cos(handles.domain);
-                    guidata(hObject, handles);    
+                p = polyfit(cos(handles.firstColumn), handles.secondColumn, 1);
+                    m = p(1);
+                    b = p(2);
+                handles.range = (m).*(cos(handles.domain)) + b;
+                    guidata(hObject, handles);
                 %plot
                 set(get(handles.axes1, 'children'), 'visible', 'off');
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                yfit = (m).*(cos(handles.firstColumn)) + b;
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Cos():\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(cos(x))+(%f)\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 9 %---Logarithmic (y=m(lnx)+b)--------------------
                 p = polyfit(log(handles.firstColumn), handles.secondColumn,1);
                     m = p(1);
@@ -325,6 +443,19 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
                 second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                yfit = (m.*(log(handles.firstColumn)))+b;
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Logarithmic (y=m(lnx)+b):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(ln(x))+(%f)\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 10 %---Logarithmic (y=m(logx)+b)------------------
                 p = polyfit(log10(handles.firstColumn), handles.secondColumn,1);
                     m = p(1);
@@ -336,7 +467,20 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');   
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                yfit = (m.*(log10(handles.firstColumn)))+b;
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Logarithmic (y=m(logx)+b):\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=(%f)(log(x))+(%f)\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
+                    fclose(fileID);
              elseif handles.fitSelection == 11 %---Reciprocal---------------------------------
                 p = polyfit(handles.firstColumn, (1./handles.secondColumn),1); 
                     m = p(1);
@@ -348,7 +492,20 @@ function plotAndRecord_Callback(hObject, eventdata, handles)
                 handles.havePlotted = 1;
                     guidata(hObject, handles);
                 first = plot(handles.axes1, handles.firstColumn, handles.secondColumn,'bo');
-                second = plot(handles.axes1, handles.domain, handles.range, 'r');    
+                second = plot(handles.axes1, handles.domain, handles.range, 'r');  
+                
+                %Type of curve, resulting coefficients, resulting equation,
+                %MSE value, R and R^2
+                yfit = 1./( (m).*(handles.firstColumn)+b );
+                        e = handles.secondColumn - yfit;
+                        MSE = mean(e.^2);
+                
+                fileID = fopen(handles.selectedLogFile, 'a');
+                    fprintf(fileID, ['Reciprocal:\r\n     ', ...
+                        'Coefficients- m=%f, b=%f\r\n     ', ...
+                        'Resulting Equation- y=1/((%f)(x)+(%f))\r\n     ', ...
+                        'MSE- %f\r\n'], p(1), p(2),p(1),p(2),MSE);
+                    fclose(fileID);
              end
         end
     end
@@ -365,7 +522,6 @@ function edit2_Callback(hObject, eventdata, handles)
         handles.timesEdited = handles.timesEdited+1;
             guidata(hObject, handles);
             
-        set(handles.edit2, 'ForegroundColor', 'black');
         set(handles.edit2, 'BackgroundColor', 'white');
         set(handles.loadDataFile, 'BackgroundColor', 'yellow');
     
